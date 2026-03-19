@@ -10,8 +10,15 @@
   <body>
     <main>
       <div class="container">
-        <div class="chat_space">
-          <p>Hello! This is the background UI for the local AI chat space. Eventually, this will resemble a typical back-and-forth text area with a place at the bottom to type out messages.</p>
+        <div class="main_content">
+          <div class="chat_space" id="chat_space">
+            <p>Hello! This is the background UI for the local AI chat space. Eventually, this will resemble a typical back-and-forth text area with a place at the bottom to type out messages.</p>
+          </div>
+          <div class="input_space" id="input_space">
+            <div class="inputGroup">
+              <div contenteditable id="input_field"></textarea>
+            </div>
+          </div>
         </div>
       </div>
     </main>

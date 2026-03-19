@@ -65,9 +65,13 @@ textarea:not([rows]) {
 
 /* Ensure everything stretches from end to end of the browser window */
 html, body {
-  margin: 0;
   padding: 0;
   height: 100%;
+}
+
+/* Get rid of any automatic margins to maintain full control */
+* {
+  margin: 0;
 }
 
 
@@ -82,7 +86,8 @@ html, body {
     --shadow: light-dark(#cac5c3, #111218);
     --border: light-dark(#E6E1DF, #1E2027);
     --border_highlight: light-dark(#EDE8E6, #22252D);
-    --input_field: light-dark(#BDBCBC, #2B2A40);
+    --border_shadow: light-dark(#E1DCDA, #1B1C23);
+    --input_field: light-dark(#BDBCBC, #636277);
     --highlight: light-dark(#A1A3A6, #6C748C);
     --primary_text: light-dark(#0D0000, #E4E7F2);
     --secondary_text: light-dark(#595656, #A8B0BF);
@@ -102,44 +107,113 @@ html, body {
 
 /* Basic body styling */
 body {
-    background-color: var(--secondary_bg);
-    color: var(--primary_text);
-    letter-spacing: 1px;
-    font-family: 'kayak-light', sans-serif, monospace;
+  background-color: var(--secondary_bg);
+  color: var(--primary_text);
+  letter-spacing: 0.75px;
+  line-height: 1.3rem;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: var(--primary_bg); 
+  border-radius: 15px;
+}
+ 
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: var(--input_field);
+  border-radius: 15px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary_text);
+  cursor: pointer;
 }
 
 /* Overarching container */
 .container {
   display: flex;
   height: 100%;
-  min-height: 100vh;
+}
+
+.main_content {
+  width: 1000px;
+  display: flex;
+  flex-flow: column;
+  width: 1000px;
+  margin: auto;
+  height: 100vh;
 }
 
 /* Chatting area */
 .chat_space {
   position: relative;
-  width: 800px;
+  width: 100%;
+  flex: 0 1 85vh;
   margin-left: auto;
   margin-right: auto;
   padding: 1rem;
   background-color: var(--primary_bg);
-  border-left-style: solid;
-  border-right-style: solid;
-  border-top-style: solid;
-  border-right-width: 0.8rem;
-  border-left-width: 0.8rem;
-  border-top-width: 0.8rem;
+  border-style: solid;
+  border-width: 0.8rem;
   border-color: var(--border);
   border-top-color: var(--border_highlight);
+  border-bottom-color: var(--border_shadow);
+  transition: flex-basis 0.3s ease-in-out;
+}
+
+.chat_space.typing {
+  flex-basis: 55vh;
 }
 
 .chat_space::before {
   position: absolute;
   z-index: -1;
   top: -0.8rem;
-  left: calc(-20px - 0.8rem);
-  width: 20px;
-  height: calc(100% + 0.8rem);
+  left: -1.55rem;
+  width: 0.8rem;
+  height: 100vh;
   background: linear-gradient(to right, transparent, var(--shadow));
   content: '';
+}
+
+/* Input field div */
+.input_space {
+  width: 100%;
+  flex: 1;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem;
+  background-color: var(--primary_bg);
+  border-style: solid;
+  border-width: 0.8rem;
+  border-color: var(--border);
+  border-top-color: var(--border_highlight);
+  border-bottom-color: var(--border_shadow);
+}
+
+/* The actual input */
+div[contenteditable]{
+  border: 2px solid var(--input_field);
+  border-radius: 10px;
+  padding: 0.5rem;
+  max-height: calc(15vh - 3.6rem);
+  overflow: auto;
+  transition: max-height 0.3s ease-in-out;
+}
+
+div[contenteditable].typing {
+  max-height: calc(45vh - 3.6rem);;
+}
+
+div[contenteditable]:focus {
+  outline: none;
+  border-color: var(--secondary_text);
 }
