@@ -80,7 +80,7 @@ html, body {
 
 /* Universal variables */
 :root {
-    color-scheme: dark;
+    color-scheme: light;
     --primary_bg: light-dark(#F2EDEB, #252831);
     --secondary_bg: light-dark(#D9D4D2, #16171C);
     --shadow: light-dark(#cac5c3, #111218);
@@ -91,7 +91,7 @@ html, body {
     --highlight: light-dark(#A1A3A6, #6C748C);
     --primary_text: light-dark(#0D0000, #E4E7F2);
     --secondary_text: light-dark(#595656, #A8B0BF);
-
+    --primary_button: light-dark(#fff9f8, #20232b);
 }
 
 /* Define fonts */
@@ -184,7 +184,7 @@ body {
   content: '';
 }
 
-/* Input field div */
+/* Input section div */
 .input_space {
   width: 100%;
   flex: 1;
@@ -199,12 +199,19 @@ body {
   border-bottom-color: var(--border_shadow);
 }
 
-/* The actual input */
+/* Input organizer */
+.input_group {
+  display: flex;
+}
+
+/* The actual input field */
 div[contenteditable]{
   border: 2px solid var(--input_field);
   border-radius: 10px;
   padding: 0.5rem;
+  margin-right: 1rem;
   max-height: calc(15vh - 3.6rem);
+  flex: 1;
   overflow: auto;
   transition: max-height 0.3s ease-in-out;
 }
@@ -216,4 +223,46 @@ div[contenteditable].typing {
 div[contenteditable]:focus {
   outline: none;
   border-color: var(--secondary_text);
+}
+
+/* Send Button */
+/* Styling by cybrejon on uiverse */
+#send {
+  max-height: 2.5rem;
+  min-height: 2rem;
+  min-width: 2rem;
+  color: var(--secondary_text);
+  padding: 10px 15px;
+  margin-left: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  align-self: flex-end;
+  text-shadow: var(--shadow);
+  background: var(--border_shadow);
+  overflow: hidden;
+  font-size: 0.9rem;
+  font-weight: 600;
+  gap: 8px;
+  border-radius: 5px;
+  margin: 0 5px;
+  transition: 0.2s;
+  border: 2px solid var(--input_field);
+}
+
+#send:hover {
+  border-color: var(--secondary_text);
+  background: linear-gradient(
+    to bottom,
+    var(--border_shadow),
+    var(--border),
+    var(--border_highlight)
+  );
+  box-shadow: 0 6px var(--border);
+  transform: translateY(-4px);
+}
+
+#send:active {
+  transform: translateY(2px);
+  box-shadow: none;
 }
