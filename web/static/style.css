@@ -28,7 +28,7 @@ ol[role='list'] {
 
 /* Set core body defaults */
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.5;
 }
 
@@ -66,7 +66,7 @@ textarea:not([rows]) {
 /* Ensure everything stretches from end to end of the browser window */
 html, body {
   padding: 0;
-  height: 100%;
+  height: 100dvh;
 }
 
 /* Get rid of any automatic margins to maintain full control */
@@ -87,8 +87,9 @@ html, body {
     --border: light-dark(#E6E1DF, #1E2027);
     --border_highlight: light-dark(#EDE8E6, #22252D);
     --border_shadow: light-dark(#E1DCDA, #1B1C23);
-    --input_field: light-dark(#BDBCBC, #636277);
+    --input_field: light-dark(#BDBCBC, #717174);
     --highlight: light-dark(#A1A3A6, #6C748C);
+    --chat_background: light-dark(#e7e0dd, #20232b);
     --primary_text: light-dark(#0D0000, #E4E7F2);
     --secondary_text: light-dark(#595656, #A8B0BF);
     --primary_button: light-dark(#fff9f8, #20232b);
@@ -149,14 +150,18 @@ body {
   flex-flow: column;
   width: 1000px;
   margin: auto;
-  height: 100vh;
+  height: 100dvh;
 }
 
 /* Chatting area */
 .chat_space {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   width: 100%;
-  flex: 0 1 85vh;
+  flex: 0 1 85dvh;
+  max-height: 85dvh;
   margin-left: auto;
   margin-right: auto;
   padding: 1rem;
@@ -166,11 +171,16 @@ body {
   border-color: var(--border);
   border-top-color: var(--border_highlight);
   border-bottom-color: var(--border_shadow);
+  overflow-y: scroll;
   transition: flex-basis 0.3s ease-in-out;
 }
 
+.chat_space div:nth-child(odd) {
+  align-self: flex-end;
+}
+
 .chat_space.typing {
-  flex-basis: 55vh;
+  flex-basis: 55dvh;
 }
 
 .chat_space::before {
@@ -179,9 +189,28 @@ body {
   top: -0.8rem;
   left: -1.55rem;
   width: 0.8rem;
-  height: 100vh;
+  height: 100dvh;
   background: linear-gradient(to right, transparent, var(--shadow));
   content: '';
+}
+
+/* User chat div */
+.user_chat {
+  max-width:85%;
+  width: fit-content;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  /*color: var(--secondary_text);*/
+  background-color: var(--chat_background);
+  border-radius: 25px;
+}
+
+/* AI chat div */
+.ai_chat {
+  max-width:85%;
+  width: fit-content;
+  padding: 0.5rem;
+  margin-bottom: 2rem;
 }
 
 /* Input section div */
@@ -210,14 +239,15 @@ div[contenteditable]{
   border-radius: 10px;
   padding: 0.5rem;
   margin-right: 1rem;
-  max-height: calc(15vh - 3.6rem);
+  max-height: calc(15dvh - 3.6rem);
   flex: 1;
   overflow: auto;
+  overflow-x: hidden;
   transition: max-height 0.3s ease-in-out;
 }
 
 div[contenteditable].typing {
-  max-height: calc(45vh - 3.6rem);;
+  max-height: calc(45dvh - 3.6rem);;
 }
 
 div[contenteditable]:focus {
