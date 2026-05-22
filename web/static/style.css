@@ -98,12 +98,12 @@ html, body {
 /* Define fonts */
 @font-face {
   font-family: 'kayak'; /* I'm not sure if this one works very well */
-  src: url('../fonts/KayakSansRegular.otf') format('opentype');
+  src: url('../text-fonts/KayakSansRegular.otf') format('opentype');
 }
 
 @font-face {
   font-family: 'kayak-light'; /* Works well for most text */
-  src: url('../fonts/KayakSansLight.otf') format('opentype');
+  src: url('../text-fonts/KayakSansLight.otf') format('opentype');
 }
 
 /* Basic body styling */
@@ -207,10 +207,32 @@ body {
 
 /* AI chat div */
 .ai_chat {
+  display: flex;
+  flex-direction: column;
   max-width:85%;
   width: fit-content;
   padding: 0.5rem;
   margin-bottom: 2rem;
+}
+
+.ai_copy {
+  background: none;
+  border: none;
+  padding: 0;
+  padding-top: 0.25rem;
+  align-self: flex-start; 
+}
+
+#copy_icon {
+  width: auto;
+  height: 1rem;
+  color: var(--secondary_text);
+  transition: color 0.1s ease-in-out;
+}
+
+#copy_icon:hover {
+  color: var(--primary_text);
+  cursor: pointer;
 }
 
 /* Input section div */
@@ -240,6 +262,7 @@ div[contenteditable]{
   padding: 0.5rem;
   margin-right: 1rem;
   max-height: calc(15dvh - 3.6rem);
+  min-height: 2.5rem;
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
@@ -265,12 +288,11 @@ div[contenteditable]:focus {
   padding: 10px 15px;
   margin-left: auto;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   align-self: flex-end;
   text-shadow: var(--shadow);
   background: var(--border_shadow);
-  overflow: hidden;
   font-size: 0.9rem;
   font-weight: 600;
   gap: 8px;
@@ -295,4 +317,9 @@ div[contenteditable]:focus {
 #send:active {
   transform: translateY(2px);
   box-shadow: none;
+}
+
+#send_icon {
+  width: auto;
+  height: 1rem;
 }

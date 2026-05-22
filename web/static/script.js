@@ -24,3 +24,10 @@ function SendMessage() {
     var text = input_field.textContent;
     input_field.textContent = "";
 }
+
+
+// -- Copy text -- //
+function CopyText(btn) {
+  const text = btn.previousElementSibling.textContent; 
+  navigator.clipboard.writeText(text)
+}
