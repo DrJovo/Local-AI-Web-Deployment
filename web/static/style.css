@@ -80,7 +80,7 @@ html, body {
 
 /* Universal variables */
 :root {
-    color-scheme: light;
+    color-scheme: dark;
     --primary_bg: light-dark(#F2EDEB, #252831);
     --secondary_bg: light-dark(#D9D4D2, #16171C);
     --shadow: light-dark(#cac5c3, #111218);

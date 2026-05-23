@@ -38,7 +38,7 @@ function createAIResponse(message) {
 
     div.className = "ai_chat";
     div.innerHTML = `
-        <p>${message}</p>   
+        <div>${message}</div>   
 
         <button class="ai_copy" onclick="CopyText(this)">
             <svg id="copy_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
@@ -52,14 +52,36 @@ function createAIResponse(message) {
 }
 
 
+// -- Sanitation -- //
+function sanitizeMessage(html) {
+    return DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: [
+            "br",
+            "p",
+            "div",
+            "b",
+            "strong",
+            "i",
+            "em",
+            "u"
+        ],
+
+        ALLOWED_ATTR: []
+    });
+}
+
+
 // -- Send message -- //
 function SendMessage() {
     var html = input_field.innerHTML;
-    
-    if (html.length > 0) {
+    const text = input_field.innerText.trim();
+
+    if (text.length > 0) {
         input_field.innerHTML = "";
 
-        createPrompt(html);
+        const clean_html = sanitizeMessage(html);
+
+        createPrompt(clean_html);
         createAIResponse("This is an example AI response.");
     }
 }
