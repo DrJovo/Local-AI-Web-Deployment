@@ -190,7 +190,6 @@ body {
   left: -1.55rem;
   width: 0.8rem;
   height: 100dvh;
-  background: linear-gradient(to right, transparent, var(--shadow));
   content: '';
 }
 
@@ -203,6 +202,7 @@ body {
   /*color: var(--secondary_text);*/
   background-color: var(--chat_background);
   border-radius: 25px;
+  overflow-wrap: break-word;
 }
 
 /* AI chat div */
@@ -213,6 +213,7 @@ body {
   width: fit-content;
   padding: 0.5rem;
   margin-bottom: 2rem;
+  overflow-wrap: break-word;
 }
 
 .ai_copy {
@@ -312,6 +313,7 @@ div[contenteditable]:focus {
   );
   box-shadow: 0 6px var(--border);
   transform: translateY(-4px);
+  cursor: pointer;
 }
 
 #send:active {
