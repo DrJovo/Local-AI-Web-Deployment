@@ -13,10 +13,10 @@ function CheckOverflow() {
         chat_space.classList.remove("typing");
         input_field.classList.remove("typing");
     }
-    window.requestAnimationFrame(CheckOverflow);
+    input_field.addEventListener("input", CheckOverflow);
 }
 
-window.requestAnimationFrame(CheckOverflow);
+input_field.addEventListener("input", CheckOverflow);
 
 
 // -- Create user chat -- //
@@ -33,12 +33,27 @@ function createPrompt(message) {
 
 
 // -- Create AI chat -- //
-function createAIResponse(message) {
+async function createAIResponse(prompt) {
+    var response = "Loading...";
+    try {
+        const result = await fetch("/api/respond", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ prompt })
+        });
+        response = result.response;
+    } catch (error) {
+        response = "Error fetching AI response.";
+        console.error(response, error);
+    }
+
     const div = document.createElement("div");
 
     div.className = "ai_chat";
     div.innerHTML = `
-        <div>${message}</div>   
+        <div>${response}</div>   
 
         <button class="ai_copy" onclick="CopyText(this)">
             <svg id="copy_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
@@ -82,7 +97,7 @@ function SendMessage() {
         const clean_html = sanitizeMessage(html);
 
         createPrompt(clean_html);
-        createAIResponse("This is an example AI response.");
+        createAIResponse(clean_html);
     }
 }
 
