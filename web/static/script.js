@@ -34,26 +34,36 @@ function createPrompt(message) {
 
 // -- Create AI chat -- //
 async function createAIResponse(prompt) {
-    var response = "Loading...";
+    let response = "Loading...";
+
     try {
         const result = await fetch("/api/respond", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ prompt })
+            body: JSON.stringify({
+                prompt: prompt
+            })
         });
-        response = result.response;
+
+        if (!result.ok) {
+            throw new Error(`HTTP error ${result.status}`);
+        }
+
+        const data = await result.json();
+        response = data.response;
+
     } catch (error) {
         response = "Error fetching AI response.";
-        console.error(response, error);
+        console.error(error);
     }
 
     const div = document.createElement("div");
 
     div.className = "ai_chat";
     div.innerHTML = `
-        <div>${response}</div>   
+        <div class="ai_message"></div>
 
         <button class="ai_copy" onclick="CopyText(this)">
             <svg id="copy_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
@@ -62,6 +72,17 @@ async function createAIResponse(prompt) {
             </svg>
         </button>
     `;
+
+    const messageDiv = div.querySelector(".ai_message");
+
+    marked.setOptions({
+        gfm: true,
+        breaks: true
+    });
+
+    messageDiv.innerHTML = DOMPurify.sanitize(
+        marked.parse(response)
+    );
 
     chat_space.appendChild(div);
 }

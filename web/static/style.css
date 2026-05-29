@@ -175,7 +175,7 @@ body {
   transition: flex-basis 0.3s ease-in-out;
 }
 
-.chat_space div:nth-child(odd) {
+.chat_space > div:nth-child(odd) {
   align-self: flex-end;
 }
 
@@ -199,7 +199,6 @@ body {
   width: fit-content;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  /*color: var(--secondary_text);*/
   background-color: var(--chat_background);
   border-radius: 25px;
   overflow-wrap: break-word;
@@ -234,6 +233,75 @@ body {
 #copy_icon:hover {
   color: var(--primary_text);
   cursor: pointer;
+}
+
+/* AI message styling */
+.ai_message {
+  line-height: 1.5;
+  color: var(--primary_text);
+}
+
+.ai_message p {
+  margin-bottom: 1rem;
+}
+
+.ai_message :not(pre) > code {
+  background-color: var(--chat_background);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-family: Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.ai_message pre {
+  background-color: var(--chat_background);
+  padding: 1rem;
+  border-radius: 10px;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.ai_message pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+.ai_message ul,
+.ai_message ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.ai_message h1,
+.ai_message h2,
+.ai_message h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai_message blockquote {
+  border-left: 4px solid var(--highlight);
+  padding-left: 1rem;
+  margin-left: 0;
+  opacity: 0.9;
+}
+
+.ai_message table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.ai_message th,
+.ai_message td {
+  border: 1px solid var(--highlight);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.ai_message th {
+  background-color: var(--chat_background);
 }
 
 /* Input section div */

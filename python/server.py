@@ -26,7 +26,7 @@ async def root():
 async def respond(request: Request):
     data = await request.json()
     prompt = data.get("prompt", "")
-    response = AICore.Response(prompt)
+    response = await AICore.Response(prompt)
     return {
         "response": response
     }
