@@ -124,3 +124,4 @@ server_stop_button.pack(in_=server_toggle_frame, side=tkinter.LEFT, padx=10, pad
 # Run
 if __name__ == "__main__":
     app.mainloop()
+    

@@ -215,7 +215,13 @@ body {
   overflow-wrap: break-word;
 }
 
-.ai_copy {
+.ai_actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.ai_copy_text {
   background: none;
   border: none;
   padding: 0;
@@ -223,14 +229,34 @@ body {
   align-self: flex-start; 
 }
 
-#copy_icon {
+#copy_text_icon {
   width: auto;
   height: 1rem;
   color: var(--secondary_text);
   transition: color 0.1s ease-in-out;
 }
 
-#copy_icon:hover {
+#copy_text_icon:hover {
+  color: var(--primary_text);
+  cursor: pointer;
+}
+
+.ai_copy_md {
+  background: none;
+  border: none;
+  padding: 0;
+  padding-top: 0.25rem;
+  align-self: flex-start; 
+}
+
+#copy_md_icon {
+  width: auto;
+  height: 1rem;
+  color: var(--secondary_text);
+  transition: color 0.1s ease-in-out;
+}
+
+#copy_md_icon:hover {
   color: var(--primary_text);
   cursor: pointer;
 }
@@ -247,8 +273,8 @@ body {
 
 .ai_message :not(pre) > code {
   background-color: var(--chat_background);
-  padding: 0.15rem 0.4rem;
-  border-radius: 6px;
+  padding: 0.45rem 0.5rem;
+  border-radius: 5px;
   font-family: Consolas, monospace;
   font-size: 0.9em;
 }
@@ -265,6 +291,34 @@ body {
   background: none;
   padding: 0;
   font-size: 0.95rem;
+}
+
+.code-block {
+  position: relative;
+}
+
+.code-block pre {
+  margin: 0;
+  padding-top: 2.5rem;
+}
+
+.copy-code-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  padding: 0.4rem 0.4rem;
+  border-radius: 5px;
+  border-color: var(--input_field);
+  background-color: var(--primary_background);
+  border-style: solid;
+  color: var(--primary_text);
+  transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+}
+
+.copy-code-btn:hover {
+  background-color: var(--border);
+  border-color: var(--secondary_text);
 }
 
 .ai_message ul,
