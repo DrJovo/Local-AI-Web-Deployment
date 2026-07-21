@@ -3,9 +3,10 @@ import customtkinter
 import subprocess
 import sys
 import netifaces
+import AICore
 
 server_process = None
-
+ollama_process = None
 
 # --- Custom Colors --- #
 class bcolors:
@@ -33,6 +34,7 @@ def update_status(is_running):
 # Start server in a subprocess to keep the GUI from freezing
 def start_server():
     global server_process
+    global ollama_process
 
     print(f"\n{bcolors.WARNING}Command: Boot Server{bcolors.ENDC}")
     if server_process == None:
@@ -49,18 +51,24 @@ def start_server():
                 port_entry.get()
             ]
         )
+        ollama_process = AICore.Boot()
+        print(ollama_process)
         update_status(True)
 
 # Shut down the server, but keep the GUI up
 def stop_server():
     global server_process
-    
+    global ollama_process
+
     print(f"{bcolors.WARNING}Command: Hault Server{bcolors.ENDC}")
     if server_process:
         print("Stopping Server...")
         server_process.terminate()
+        ollama_process.terminate()
         server_process.wait()
+        ollama_process.wait()
         server_process = None
+        ollama_process = None
         update_status(False)
         print(f"{bcolors.OKGREEN}Server Stopped!{bcolors.ENDC}")
 
