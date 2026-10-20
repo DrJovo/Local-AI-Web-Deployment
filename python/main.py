@@ -2,8 +2,9 @@ import tkinter
 import customtkinter
 import subprocess
 import sys
-import netifaces
+import socket
 import AICore
+import psutil
 
 server_process = None
 ollama_process = None
@@ -64,9 +65,10 @@ def stop_server():
     if server_process:
         print("Stopping Server...")
         server_process.terminate()
-        ollama_process.terminate()
         server_process.wait()
-        ollama_process.wait()
+        if ollama_process:
+            ollama_process.terminate()
+            ollama_process.wait()
         server_process = None
         ollama_process = None
         update_status(False)
@@ -78,11 +80,32 @@ def force_shutdown():
     stop_server()
     app.destroy()
 
+# Get the local IP address and interface of the machine
+def get_network_info():
+    # Get the local IP address using your original method
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    local_ip = "127.0.0.1"
+    interface = "lo"
+    try:
+        s.connect(('8.8.8.8', 80))
+        local_ip = s.getsockname()[0]
+    except Exception:
+        return interface, local_ip
+    finally:
+       s.close()
+
+    # Match the IP address to the interface name using psutil
+    for interface, addrs in psutil.net_if_addrs().items():
+        for addr in addrs:
+            if addr.address == local_ip:
+                return interface, local_ip
+
+    return interface, local_ip
+
 
 # --- Server Default Settings --- #
 default_port = 7000
-interface = netifaces.gateways()['default'][netifaces.AF_INET][1]
-ip = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]['addr']
+interface, ip = get_network_info()
 
 
 # --- Window Setup --- #

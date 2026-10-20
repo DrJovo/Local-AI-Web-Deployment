@@ -3,20 +3,20 @@ var input_space = document.getElementById("input_space");
 var input_field = document.getElementById("input_field");
 var chat_space = document.getElementById("chat_space");
 
-function CheckOverflow() {
-    const isOverflowing = input_field.scrollHeight > input_field.clientHeight;
-    if (isOverflowing && !input_field.classList.contains("typing")) {
-        chat_space.classList.add("typing");
-        input_field.classList.add("typing");
-    }
-    else if (!isOverflowing && input_field.innerHTML.length < 1) {
+input_field.addEventListener("input", () => {
+    const isEmpty = input_field.innerHTML === "" || input_field.innerHTML === "<br>" || input_field.innerHTML === "<div><br></div>";
+    if (isEmpty) {
         chat_space.classList.remove("typing");
         input_field.classList.remove("typing");
     }
-    input_field.addEventListener("input", CheckOverflow);
-}
-
-input_field.addEventListener("input", CheckOverflow);
+    else {
+        const isOverflowing = input_field.scrollHeight > input_field.clientHeight;
+        if (isOverflowing && !input_field.classList.contains("typing")) {
+            chat_space.classList.add("typing");
+            input_field.classList.add("typing");
+        }
+    }
+});
 
 
 // -- Create user chat -- //
@@ -30,7 +30,6 @@ function createPrompt(message) {
 
     chat_space.appendChild(div);
 }
-
 
 
 // -- Create AI chat -- //
@@ -186,6 +185,8 @@ function SendMessage() {
 
     if (text.length > 0) {
         input_field.innerHTML = "";
+        chat_space.classList.remove("typing");
+        input_field.classList.remove("typing");
 
         const clean_html = sanitizeMessage(html);
 
