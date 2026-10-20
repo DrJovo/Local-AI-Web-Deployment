@@ -18,6 +18,14 @@ input_field.addEventListener("input", () => {
     }
 });
 
+// -- Make Shift+Enter create a new line in the input field, and Enter send the message -- //
+function checkEnter(event) {
+    if (event.keyCode == "13" && !event.shiftKey) {
+        event.preventDefault();
+        SendMessage();
+        return true;
+    }
+}
 
 // -- Create user chat -- //
 function createPrompt(message) {
@@ -29,6 +37,8 @@ function createPrompt(message) {
     `;
 
     chat_space.appendChild(div);
+
+    scrollToBottom(true);
 }
 
 
@@ -51,6 +61,38 @@ const responseStore = new ResponseStore();
 async function createAIResponse(prompt) {
     let response = "Loading...";
 
+    // Create the AI chat container
+    const div = document.createElement("div");
+
+    div.className = "ai_chat";
+    div.innerHTML = `
+        <div class="ai_message" id=${responseStore.responses.length - 1}></div>
+
+        <div class="ai_actions">
+            <button class="ai_copy_text" title="Copy all as plaintext" onclick="CopyText(this)">
+                <svg id="copy_text_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+                    <path fill="currentColor"
+                        d="M192 0c-35.3 0-64 28.7-64 64l0 256c0 35.3 28.7 64 64 64l192 0c35.3 0 64-28.7 64-64l0-200.6c0-17.4-7.1-34.1-19.7-46.2L370.6 17.8C358.7 6.4 342.8 0 326.3 0L192 0zM64 128c-35.3 0-64 28.7-64 64L0 448c0 35.3 28.7 64 64 64l192 0c35.3 0 64-28.7 64-64l0-16-64 0 0 16-192 0 0-256 16 0 0-64-16 0z"/>
+                </svg>
+            </button>
+            <button class="ai_copy_md" title="Copy all with formatting" onclick="CopyMarkdown(this)">
+                <svg id="copy_md_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+                    <path fill="currentColor"
+                        d="M392.8 65.2C375.8 60.3 358.1 70.2 353.2 87.2L225.2 535.2C220.3 552.2 230.2 569.9 247.2 574.8C264.2 579.7 281.9 569.8 286.8 552.8L414.8 104.8C419.7 87.8 409.8 70.1 392.8 65.2zM457.4 201.3C444.9 213.8 444.9 234.1 457.4 246.6L530.8 320L457.4 393.4C444.9 405.9 444.9 426.2 457.4 438.7C469.9 451.2 490.2 451.2 502.7 438.7L598.7 342.7C611.2 330.2 611.2 309.9 598.7 297.4L502.7 201.4C490.2 188.9 469.9 188.9 457.4 201.4zM182.7 201.3C170.2 188.8 149.9 188.8 137.4 201.3L41.4 297.3C28.9 309.8 28.9 330.1 41.4 342.6L137.4 438.6C149.9 451.1 170.2 451.1 182.7 438.6C195.2 426.1 195.2 405.8 182.7 393.3L109.3 320L182.6 246.6C195.1 234.1 195.1 213.8 182.6 201.3z"/>
+                </svg>
+            </button>
+        </div>
+    `;
+
+    // Give it a temporary loading message
+    messageDiv = div.querySelector(".ai_message");
+    messageDiv.innerHTML = response;
+
+    chat_space.appendChild(div);
+
+    scrollToBottom();
+
+    // Get the AI's response from the backend
     try {
         const result = await fetch("/api/respond", {
             method: "POST",
@@ -74,30 +116,11 @@ async function createAIResponse(prompt) {
         console.error(error);
     }
 
+
+    // Add the response to the response store
     responseStore.addMessage(response);
 
-    const div = document.createElement("div");
-
-    div.className = "ai_chat";
-    div.innerHTML = `
-        <div class="ai_message" id=${responseStore.responses.length - 1}></div>
-
-        <div class="ai_actions">
-            <button class="ai_copy_text" title="Copy all as plaintext" onclick="CopyText(this)">
-                <svg id="copy_text_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
-                    <path fill="currentColor"
-                        d="M192 0c-35.3 0-64 28.7-64 64l0 256c0 35.3 28.7 64 64 64l192 0c35.3 0 64-28.7 64-64l0-200.6c0-17.4-7.1-34.1-19.7-46.2L370.6 17.8C358.7 6.4 342.8 0 326.3 0L192 0zM64 128c-35.3 0-64 28.7-64 64L0 448c0 35.3 28.7 64 64 64l192 0c35.3 0 64-28.7 64-64l0-16-64 0 0 16-192 0 0-256 16 0 0-64-16 0z"/>
-                </svg>
-            </button>
-            <button class="ai_copy_md" title="Copy all with formatting" onclick="CopyMarkdown(this)">
-                <svg id="copy_md_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
-                    <path fill="currentColor"
-                        d="M392.8 65.2C375.8 60.3 358.1 70.2 353.2 87.2L225.2 535.2C220.3 552.2 230.2 569.9 247.2 574.8C264.2 579.7 281.9 569.8 286.8 552.8L414.8 104.8C419.7 87.8 409.8 70.1 392.8 65.2zM457.4 201.3C444.9 213.8 444.9 234.1 457.4 246.6L530.8 320L457.4 393.4C444.9 405.9 444.9 426.2 457.4 438.7C469.9 451.2 490.2 451.2 502.7 438.7L598.7 342.7C611.2 330.2 611.2 309.9 598.7 297.4L502.7 201.4C490.2 188.9 469.9 188.9 457.4 201.4zM182.7 201.3C170.2 188.8 149.9 188.8 137.4 201.3L41.4 297.3C28.9 309.8 28.9 330.1 41.4 342.6L137.4 438.6C149.9 451.1 170.2 451.1 182.7 438.6C195.2 426.1 195.2 405.8 182.7 393.3L109.3 320L182.6 246.6C195.1 234.1 195.1 213.8 182.6 201.3z"/>
-                </svg>
-            </button>
-        </div>
-    `;
-
+    // Render the response as Markdown
     const renderer = new marked.Renderer();
 
     marked.setOptions({
@@ -118,12 +141,11 @@ async function createAIResponse(prompt) {
     </div>`;
     };
 
-    messageDiv = div.querySelector(".ai_message");
-
     messageDiv.innerHTML = DOMPurify.sanitize(
         marked.parse(response)
     );
     
+    // Add a copy button to each code block
     div.querySelectorAll(".copy-code-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             const code = btn.parentElement.querySelector("code");
@@ -148,7 +170,36 @@ async function createAIResponse(prompt) {
         });
     });
 
-    chat_space.appendChild(div);
+    scrollToBottom();
+}
+
+
+// -- Scroll to bottom of AI message on prompt send -- //
+// Check if the user is scrolling
+let isUserScrolling = false;
+let programmaticScroll = false;
+chat_space.onscroll = (event) => {
+    if (programmaticScroll) return;
+    const isAtBottom = chat_space.scrollHeight - chat_space.scrollTop <= chat_space.clientHeight + 5;
+    if (isAtBottom) {
+        isUserScrolling = false;
+    } else {
+        isUserScrolling = true;
+    }
+}
+
+// If the user is not scrolling, automatically scroll to the bottom of the chat space
+function scrollToBottom(ignoreScrollCheck = false) {
+    if (!isUserScrolling || ignoreScrollCheck) {
+        programmaticScroll = true;
+        isUserScrolling = false;
+        chat_space.scrollTo({top: chat_space.scrollHeight, behavior: "smooth"});
+        
+        // Reset the programmatic flag right after the layout updates
+        setTimeout(() => {
+            programmaticScroll = false;
+        }, 10);
+    }
 }
 
 
