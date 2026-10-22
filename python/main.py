@@ -3,7 +3,8 @@ import customtkinter
 import subprocess
 import sys
 import socket
-import AICore
+import ai_core
+import database
 import psutil
 
 server_process = None
@@ -52,9 +53,30 @@ def start_server():
                 port_entry.get()
             ]
         )
-        ollama_process = AICore.Boot()
-        print(ollama_process)
+        ollama_process = ai_core.Boot()
+
+        # Connect to the database
+        db_message, db_status = database.connect_to_database()
+        if db_status == 0:
+            print(db_message)
+        else:
+            print(f"{bcolors.FAIL}{db_message}{bcolors.ENDC}")
+            stop_server()
+            return
+
+        # Initialize the database
+        db_message, db_status = database.initialize_database()
+        if db_status == 0:
+            print(db_message)
+        else:
+            print(f"{bcolors.FAIL}{db_message}{bcolors.ENDC}")
+            stop_server()
+            return
+
+        # Update the server status in the GUI
         update_status(True)
+    else:
+        print("Server is already running")
 
 # Shut down the server, but keep the GUI up
 def stop_server():
@@ -71,8 +93,19 @@ def stop_server():
             ollama_process.wait()
         server_process = None
         ollama_process = None
+
+        # Close the database connection
+        db_message, db_status = database.close_database_connection()
+        if db_status == 0:
+            print(db_message)
+        else:
+            print(f"{bcolors.FAIL}{db_message}{bcolors.ENDC}")
+
+        # Update the server status in the GUI
         update_status(False)
         print(f"{bcolors.OKGREEN}Server Stopped!{bcolors.ENDC}")
+    else:
+        print("Server is not running")
 
 # Force shutdown in the case the GUI is closed before shutting down the server
 def force_shutdown():

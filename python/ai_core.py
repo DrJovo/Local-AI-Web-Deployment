@@ -1,7 +1,15 @@
-import asyncio
+import os
 import textwrap
 import subprocess
+import ollama
 import psutil
+from ollama import AsyncClient
+
+# Async Client
+client = AsyncClient()
+
+# Ollama log file
+log_path = os.path.join(os.path.dirname(__file__), "..", "ollama.log")
 
 # Startup Ollama
 def Boot():
@@ -20,11 +28,31 @@ def Boot():
 
     # Start Ollama
     print("Booting Ollama...")
-    return subprocess.Popen(['ollama', 'serve'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) # Return the process
+    with open(log_path, 'a') as log_file:
+        return subprocess.Popen(['ollama', 'serve'], stdout=log_file, stderr=subprocess.STDOUT) # Return the process
 
 # Get reponse from the AI
-async def Response(prompt):
-    text = textwrap.dedent("""
+# This should handel mutliple prompts and responses concurrently
+async def Response(messages):
+    last_chunk = None
+    try:
+        async for chunk in await client.chat(
+            model='llama3.2:3b',
+            messages=messages,
+            stream=True
+        ): 
+            last_chunk = chunk
+            yield chunk['message']['content']
+    except Exception as e:
+        print("Error in Response function: ", str(e))
+        yield f"\n\nError: {str(e)}\n"
+    if last_chunk:
+        print("\nResponse Token Count --", last_chunk.get("eval_count"))
+
+        
+# The following is for future reference and testing purposes
+"""
+text = textwrap.dedent(
         This is a placeholder response from the AI.
 
         ---
@@ -62,7 +90,5 @@ async def Response(prompt):
         | --- | --- |
         | Item in Col 1, Row 1 | Item in Col 2, Row 1 |
         | Item in Col 1, Row 2 | Item in Col 2, Row 2 |
-    """).strip()
-    
-    await asyncio.sleep(1)  # Simulate processing time
-    return text
+    ).strip()
+"""

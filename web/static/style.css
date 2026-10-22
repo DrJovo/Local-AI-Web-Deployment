@@ -329,7 +329,10 @@ body {
 
 .ai_message h1,
 .ai_message h2,
-.ai_message h3 {
+.ai_message h3,
+.ai_message h4,
+.ai_message h5,
+.ai_message h6 {
   margin-top: 1rem;
   margin-bottom: 0.75rem;
 }
