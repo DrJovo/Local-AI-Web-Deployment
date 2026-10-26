@@ -93,6 +93,7 @@ html, body {
     --primary_text: light-dark(#0D0000, #E4E7F2);
     --secondary_text: light-dark(#595656, #A8B0BF);
     --primary_button: light-dark(#fff9f8, #20232b);
+    --link: light-dark(#46619d, #5678c0);
 }
 
 /* Define fonts */
@@ -218,7 +219,7 @@ body {
 .ai_actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
 }
 
 .ai_copy_text {
@@ -229,14 +230,14 @@ body {
   align-self: flex-start; 
 }
 
-#copy_text_icon {
+.copy_text_icon {
   width: auto;
   height: 1rem;
   color: var(--secondary_text);
   transition: color 0.1s ease-in-out;
 }
 
-#copy_text_icon:hover {
+.copy_text_icon:hover {
   color: var(--primary_text);
   cursor: pointer;
 }
@@ -249,16 +250,31 @@ body {
   align-self: flex-start; 
 }
 
-#copy_md_icon {
+.copy_md_icon {
   width: auto;
   height: 1rem;
   color: var(--secondary_text);
   transition: color 0.1s ease-in-out;
 }
 
-#copy_md_icon:hover {
+.copy_md_icon:hover {
   color: var(--primary_text);
   cursor: pointer;
+}
+
+/* User message styling */
+.user_chat ul,
+.user_chat ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.user_chat a {
+  color: var(--link);
+}
+
+.user_chat > div > :last-child {
+  margin-bottom: 0;
 }
 
 /* AI message styling */
@@ -273,7 +289,7 @@ body {
 
 .ai_message :not(pre) > code {
   background-color: var(--chat_background);
-  padding: 0.45rem 0.5rem;
+  padding: 0.1rem 0.25rem;
   border-radius: 5px;
   font-family: Consolas, monospace;
   font-size: 0.9em;
@@ -284,7 +300,6 @@ body {
   padding: 1rem;
   border-radius: 10px;
   overflow-x: auto;
-  margin-bottom: 1rem;
 }
 
 .ai_message pre code {
@@ -295,6 +310,7 @@ body {
 
 .code-block {
   position: relative;
+  margin-bottom: 1rem;
 }
 
 .code-block pre {
@@ -310,7 +326,7 @@ body {
   padding: 0.4rem 0.4rem;
   border-radius: 5px;
   border-color: var(--input_field);
-  background-color: var(--primary_background);
+  background-color: var(--primary_bg);
   border-style: solid;
   color: var(--primary_text);
   transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
@@ -325,6 +341,10 @@ body {
 .ai_message ol {
   padding-left: 1.5rem;
   margin-bottom: 1rem;
+}
+
+.ai_message a {
+  color: var(--link)
 }
 
 .ai_message h1,
@@ -359,6 +379,10 @@ body {
 
 .ai_message th {
   background-color: var(--chat_background);
+}
+
+.ai_message > :last-child {
+  margin-bottom: 0;
 }
 
 /* Input section div */

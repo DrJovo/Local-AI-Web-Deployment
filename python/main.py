@@ -184,8 +184,24 @@ server_stop_button = customtkinter.CTkButton(app, text="Stop Server", command=st
 server_start_button.pack(in_=server_toggle_frame, side=tkinter.LEFT, padx=10, pady=10)
 server_stop_button.pack(in_=server_toggle_frame, side=tkinter.LEFT, padx=10, pady=10)
 
+# Handel Button Errors
+def report_callback_except(err_type, error, traceback):
+    force_shutdown()
+    print("We just got an error!")
+    print(err_type, error)
+    print(traceback)
+app.report_callback_exception = report_callback_except
 
 # Run
 if __name__ == "__main__":
-    app.mainloop()
+    try:
+        app.mainloop()
+    except Exception as e:
+        print(f"{bcolors.FAIL}{e}{bcolors.ENDC}")
+    finally:
+        try:
+            print("\nEnsuring the server is closed...")
+            force_shutdown()
+        except Exception as e:
+            print(f"{bcolors.WARNING}{e}{bcolors.ENDC}")
     

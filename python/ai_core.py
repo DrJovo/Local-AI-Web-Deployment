@@ -1,7 +1,6 @@
 import os
 import textwrap
 import subprocess
-import ollama
 import psutil
 from ollama import AsyncClient
 
@@ -35,6 +34,8 @@ def Boot():
 # This should handel mutliple prompts and responses concurrently
 async def Response(messages):
     last_chunk = None
+    response = ""
+
     try:
         async for chunk in await client.chat(
             model='llama3.2:3b',
@@ -42,11 +43,15 @@ async def Response(messages):
             stream=True
         ): 
             last_chunk = chunk
+            response += chunk['message']['content']
             yield chunk['message']['content']
     except Exception as e:
         print("Error in Response function: ", str(e))
         yield f"\n\nError: {str(e)}\n"
     if last_chunk:
+        # If the AI responds with absolutely nothing, put something in
+        if response == "":
+            yield " "
         print("\nResponse Token Count --", last_chunk.get("eval_count"))
 
         
@@ -55,6 +60,7 @@ async def Response(messages):
 text = textwrap.dedent(
         This is a placeholder response from the AI.
 
+        Horizontal line:
         ---
         
 
@@ -63,6 +69,12 @@ text = textwrap.dedent(
         ## Heading 2
 
         ### Heading 3
+
+        #### Heading 4
+        
+        ##### Heading 5
+
+        ###### Heading 6
 
         **Bold** and *italic* text.
         
@@ -83,6 +95,7 @@ text = textwrap.dedent(
             "Block Code": "Example"
         }
         ```
+        To do block and inline code, it must use this format.
         
         [Link Example](https://www.example.com)
 
@@ -90,5 +103,6 @@ text = textwrap.dedent(
         | --- | --- |
         | Item in Col 1, Row 1 | Item in Col 2, Row 1 |
         | Item in Col 1, Row 2 | Item in Col 2, Row 2 |
+        There are not limits to the number of columns and rows, as long as they stick to this format.
     ).strip()
 """

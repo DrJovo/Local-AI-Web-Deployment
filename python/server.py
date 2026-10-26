@@ -74,5 +74,5 @@ async def guest_respond(guest_request: schemas.GuestChatRequest):
     history = [message.model_dump() for message in data]
 
     # Get the AI response stream as generator object
-    stream = ai_core.Response(data)
+    stream = ai_core.Response(history)
     return StreamingResponse(stream, media_type="text/plain")
