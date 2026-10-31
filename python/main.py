@@ -53,7 +53,7 @@ def start_server():
                 port_entry.get()
             ]
         )
-        ollama_process = ai_core.Boot()
+        ollama_process = ai_core.Boot(override=True)
 
         # Connect to the database
         db_message, db_status = database.connect_to_database()
@@ -186,8 +186,8 @@ server_stop_button.pack(in_=server_toggle_frame, side=tkinter.LEFT, padx=10, pad
 
 # Handel Button Errors
 def report_callback_except(err_type, error, traceback):
-    force_shutdown()
     print("We just got an error!")
+    force_shutdown()
     print(err_type, error)
     print(traceback)
 app.report_callback_exception = report_callback_except
