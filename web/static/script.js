@@ -544,14 +544,103 @@ function sendMessage() {
 }
 
 
-// -- Copy text -- //
+// -- Copy text -- //'
+
+// Add space if needed
+function addSpace(math) {
+    return ("∑∏∐∫∬∭∮⋃⋂⋁⋀⨁⨂⨀→←↔⇒⇐⇔".includes(math) || math.includes("\u2061")) ? " " : "";
+}
+
+// Math conversion helper function
+function group(node) {
+    const result = toText(node);
+    if (node.localName === "mrow" || node.localName === "mstyle" || node.localName === "mpadded" || node.localName === "menclose") {
+        if (node.children.length === 1) {
+            return group(result);
+        }
+    }
+    if (result.length > 1) {
+        return "(" + result + ")";
+    }
+    return result;
+}
+
+// Plaintext math converter
+function toText(math) {
+    const kids = [...math.children];
+
+    if (math.localName === "mfrac") {
+        return group(kids[0]) + "/" + group(kids[1]);
+    }
+    if (math.localName === "msup") {
+        return group(kids[0]) + "^" + group(kids[1]) + addSpace(kids[0].textContent);;
+    }
+    if (math.localName === "msub") {
+        return group(kids[0]) + "_" + group(kids[1]) + addSpace(kids[0].textContent);;
+    }
+    if (math.localName === "msubsup") {
+        return group(kids[0]) + "_" + group(kids[1]) + "^" + group(kids[2]) + addSpace(kids[0].textContent);
+    }
+    if (math.localName === "munder") {
+        return group(kids[0]) + "_" + group(kids[1]) + addSpace(kids[0].textContent);;
+    }
+    if (math.localName === "mover") {
+        return group(kids[0]) + "^" + group(kids[1]) + addSpace(kids[0].textContent);;
+    }
+    if (math.localName === "munderover") {
+        return group(kids[0]) + "_" + group(kids[1]) + "^" + group(kids[2]) + addSpace(kids[0].textContent);;
+    }
+    if (math.localName === "msqrt") {
+        return "√(" + kids.map(toText).join("") + ")";
+    }
+    if (math.localName === "mroot") {
+        return group(kids[1]) + "√(" + group(kids[0]) + ")";
+    }
+    if (math.localName === "mtable") {
+        return kids.map(toText).join(" ; ");
+    }
+    if (math.localName === "mtr") {
+        return kids.map(toText).join(", ");
+    }
+    if (math.localName === "annotation") {
+        return "";
+    }
+
+    if (kids.length > 0) return kids.map(toText).join("");
+    return math.textContent;
+}
+
 function CopyText(btn) {
     const chat = btn.closest(".ai-chat");
-    const message = chat.querySelector(".ai-message");
+    const originalMessage = chat?.querySelector(".ai-message");
+    if (!originalMessage) return;
 
-    const text = message.innerText;
+    const clonedMessage = originalMessage.cloneNode(true);
+
+    // Remove the code headers
+    clonedMessage.querySelectorAll(".code-header")
+        .forEach(element => element.remove()
+    );
+
+    // Reformat the math into readable plaintext
+    clonedMessage.querySelectorAll(".katex")
+        .forEach(element => {
+            const math = element.querySelector("math");
+            if (!math) return;
+            const text = toText(math);
+            element.replaceWith(text);
+        }
+    ).replace(/[\u2061-\u2064]/g, " ").trim();
+    
+    // Temporarily load the new element off screen
+    clonedMessage.style.position = "fixed";
+    clonedMessage.style.left = "-10000px";
+    clonedMessage.style.top = "0";
+    clonedMessage.removeAttribute("id");
+    document.body.appendChild(clonedMessage);
 
     try {
+        const text = clonedMessage.innerText;
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text);
         } else {
@@ -559,9 +648,10 @@ function CopyText(btn) {
         }
 
         console.log("Copied");
-    }
-    catch (err) {
-        console.error(err);
+    } catch (err) {
+        console.error("Copy failed:", err);
+    } finally {
+        clonedMessage.remove();
     }
 }
 

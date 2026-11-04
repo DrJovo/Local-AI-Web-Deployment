@@ -500,7 +500,8 @@ body {
 
 .thought-bubble.open .collapsible-thought-bubble {
   grid-template-rows: 1fr;
-  border-bottom: 1px solid var(--secondary_text);
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--code_line_numbers);
 }
 
 .thought-bubble.open .preview-thoughts {
