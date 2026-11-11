@@ -158,13 +158,15 @@ body {
 }
 
 .main-content {
-  width: 1000px;
   display: flex;
   flex-flow: column;
-  width: 1000px;
+  width: 100%;
+  max-width: 1000px;
+  min-width: 0;
   margin: auto;
   height: 100dvh;
 }
+
 
 /* Chatting area */
 .chat-space {
@@ -234,6 +236,10 @@ body {
   margin-top: 0.35rem;
 }
 
+.ai-actions[hidden] {
+  display: none;
+}
+
 .ai-copy-text {
   background: none;
   border: none;
@@ -299,6 +305,20 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Wide content scrolls inside its own box instead of stretching the page */
+.ai-message pre,
+.ai-message .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+@media (max-width: 700px) {
+  .ai-message table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
 /* Inline code */
 .ai-message :not(pre) > code {
   padding: 0.1rem 0.25rem;
@@ -333,7 +353,7 @@ body {
   color: var(--code_line_numbers);
 }
 
-.line-numbers .line-numbers_rows {
+.line-numbers .line-numbers-rows {
   border-right-color: var(--code_line_numbers);
 }
 
@@ -557,7 +577,7 @@ div[contenteditable]{
   padding: 0.5rem;
   margin-right: 1rem;
   max-height: calc(15dvh - 3.6rem);
-  min-height: 2.5rem;
+  min-height: 2.6rem;
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
@@ -576,7 +596,7 @@ div[contenteditable]:focus {
 /* Send Button */
 /* Styling by cybrejon on uiverse */
 #send {
-  max-height: 2.5rem;
+  max-height: 2.6rem;
   min-height: 2rem;
   min-width: 2rem;
   color: var(--secondary_text);

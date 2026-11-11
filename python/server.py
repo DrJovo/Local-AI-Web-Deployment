@@ -22,6 +22,11 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 async def root():
     return FileResponse(os.path.join(web_dir, "index.html"))
 
+# Get data about ollama
+@app.get("/api/ollama")
+async def get_ollama_data():
+    return ai_core.get_ollama_data()
+
 # Create a new user account
 @app.post("/api/register")
 async def register():

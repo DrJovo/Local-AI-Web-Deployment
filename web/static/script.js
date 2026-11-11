@@ -7,13 +7,30 @@ let userRole = "guest";
 // Is the user currently waiting for an AI response
 let isSending = false;
 
+
+// Read the saved chat
+function loadSavedChat() {
+    try {
+        const saved = JSON.parse(sessionStorage.getItem("chat"));
+        if (Array.isArray(saved)) {
+            return saved.filter(
+                m => typeof m?.content === "string" &&
+                (m.role === "user" || m.role === "assistant")
+            );
+        }
+    } catch (error) {
+        console.warn("Saved chat could not be read.", error);
+    }
+    return [];
+}
+
 // Store responses
 class ChatHistory {
     // Public list declaration
-    messages = JSON.parse(sessionStorage.getItem("chat")) || [];
+    messages = loadSavedChat();
 
-    add(messageHTML, plainText, role) {
-        const newMessage = { role: role, content: plainText, html: messageHTML };
+    add(messageHTML, plainText, tokens, role) {
+        const newMessage = { role: role, content: plainText, html: messageHTML, characters: plainText.length, tokens: tokens };
         this.messages.push(newMessage);
     }
     remove(index) {
@@ -28,11 +45,14 @@ class ChatHistory {
     count() {
         return this.messages.length;
     }
-    update(index, contentHTML, plainText, role=null) {
+    update(index, contentHTML, plainText, tokens=null, role=null) {
         if (role == null) { 
             role = this.messages[index].role;
         }
-        this.messages[index] = { role: role, content: plainText, html: contentHTML}
+        if (tokens == null) { 
+            tokens = this.messages[index].tokens;
+        }
+        this.messages[index] = { role: role, content: plainText, html: contentHTML, characters: plainText.length, tokens: tokens }
     }
     clear() {
         this.messages = [];
@@ -171,14 +191,15 @@ function AddThoughtBubble(div) {
 
 function UpdateLoadingMessageInChat(div, message) {
     const loadingDiv = div.querySelector(".loading-message");
-    loadingDiv.textContent = message;
+    if (loadingDiv)
+        loadingDiv.textContent = message;
 }
 
 function UpdateAIThoughtsInChat(div, thoughts) {
     const thoughtDiv = div.querySelector(".ai-thoughts");
     const previewInnerDiv = div.querySelector(".preview-inner-text");
     if (thoughtDiv && previewInnerDiv) {
-        previewInnerDiv.textContent = thoughts.split("\n").filter(l => l.trim() !== "").at(0) ?? "";
+        previewInnerDiv.textContent = thoughts.split("\n").filter(l => l.trim() !== "").at(-1) ?? "";
         thoughtDiv.innerHTML = DOMPurify.sanitize(
             marked.parse(thoughts)
         );
@@ -217,10 +238,72 @@ function ProcessAIResults(lines, state) {
             state.thoughts += evt.text;
             UpdateAIThoughtsInChat(state.div, state.thoughts);
         }
+        else if (evt.type == "tokens") {
+            state.tokens = parseInt(evt.text, 10);
+        }
         else if (evt.type == "error") {
             state.error = evt.text;
             break;
         }
+    }
+}
+
+// Trim message history to fit context window
+let trimIndex = 0;
+let contextUsage = 0;
+let maxContext = 0;
+async function trimChatHistory(threshold = 0.9, trimTo = 0.65) {
+    // Get max context length from Ollama
+    const response = await fetch("/api/ollama");
+    if (!response.ok) {
+        console.error("Failed to fetch Ollama data:", response.status, response.statusText);
+    }
+    const data = await response.json();
+    
+    const maxContextLength = parseInt(data.OLLAMA_CONTEXT_LENGTH, 10);
+    const maxMessages = parseInt(data.max_messages, 10);
+    if (maxContextLength !== maxContext) {
+        maxContext = maxContextLength;
+        console.log("Max context length:", maxContextLength);
+    }
+
+    // Calculate total tokens in chat history, and return the smallest index to trim from
+    let trimToIndex = trimIndex;
+    let hasBeenTrimmed = 0;
+    let totalTokens = parseInt(data.system_prompt_tokens, 10) || 0; // Start with system prompt tokens
+    let trimmedTokens = totalTokens;
+    for (let i = chatHistory.count() - 1; i >= trimIndex; i--) {
+        const message = chatHistory.get(i);
+        totalTokens += message.tokens;
+        if (!hasBeenTrimmed && totalTokens > maxContextLength * trimTo) {
+            if (message.role === "assistant") {
+                trimToIndex = i + 1;
+            } else { trimToIndex = i; }
+            hasBeenTrimmed = 1;
+            trimmedTokens = totalTokens;
+            console.log("60% Index:", trimToIndex, "Tokens:", trimmedTokens);
+        }
+        if (totalTokens > maxContextLength * threshold) {
+            trimIndex = trimToIndex;
+            console.log("Past Threshold Tokens:", totalTokens);
+        }
+    }
+    if (chatHistory.count() - trimIndex > maxMessages) {
+        trimIndex = chatHistory.count() - maxMessages;
+        if (chatHistory.get(trimIndex).role === "assistant") {
+            trimIndex++;
+        }
+        console.log("Message cap hit - trimIndex:", trimIndex);
+    }
+
+    if (hasBeenTrimmed) {
+        contextUsage = trimmedTokens;
+    } else { contextUsage = totalTokens; }
+    const contextUsageNoPrompt = contextUsage - chatHistory.get(chatHistory.count()-1).tokens;
+    console.log("Current context usage:", contextUsageNoPrompt, "-", Math.round(contextUsageNoPrompt*1000.0/maxContextLength)/10.0, "%");
+
+    if (contextUsage > maxContextLength) {
+        throw new Error("The last message exceeded the context window. Please try again with a shorter message.");
     }
 }
 
@@ -275,11 +358,16 @@ renderer.code = function(token) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
     
-    const lang = (token.lang || "").toLowerCase()
+    const requested = (token.lang || "").toLowerCase()
         .replace("c++", "cpp")
         .replace("c#", "csharp")
         .replace("6502 assembly", "asm6502")
-        .replace("asp.net", "aspnet"); // May want to add more
+        .replace("asp.net", "aspnet") // May want to add more
+        .trim()
+        .split(/\s+/)[0]; // Get requested language
+
+    const lang = typeof Prism.languages[requested] === "object" ? requested : "plaintext";
+
 
     return `<div class="code-block">
             <div class="code-header"><span class="code-header-language">${lang || ""}</span><button class="copy-code-btn">Copy</button></div>
@@ -305,11 +393,11 @@ async function GetResponseAsGuest(request){
 // Create AI response
 async function createAIResponse(promptHTML, text) {
     let pending = "";
-    const loadingMessage = "Loading...";
 
     let responseState = { 
         answer: "", 
         thoughts: "", 
+        tokens: 0,
         gotFirstEvent: false,
         thinking: false,
         bubble: null, 
@@ -321,80 +409,104 @@ async function createAIResponse(promptHTML, text) {
     try {
         // Save prompt to session storage
         const sanitizedHTML = sanitizeUserMessage(promptHTML);
-        chatHistory.add(sanitizedHTML, text, "user");
+        chatHistory.add(sanitizedHTML, text, Math.ceil(text.length / 40.0) * 10, "user");
+        console.log(chatHistory.getAll());
+        
+        // Check if the chat history needs to be trimmed
+        try {
+            await trimChatHistory();
+        } catch (error) {
+            responseState.error = "\n\nEncountered an issue fetching the AI's response.\n*" + error + "*";
+            console.error(error);
+        }
 
         // Get the array using the class method, then strip the html property
         const request = JSON.stringify({ 
-            messages: chatHistory.getAll().map(({ html, ...rest }) => rest),
+            messages: chatHistory.getAll()
+                .slice(trimIndex, chatHistory.count())
+                .map(({ html, ...rest }) => rest),
             model: "qwen3.5:9b",
             thinking: true
         });
 
         // Add a temporary response in the store to reserve the slot
-        chatHistory.add("", "", "assistant");
+        chatHistory.add("", "", 0, "assistant");
         responseState.index = chatHistory.count() - 1;
 
         // Create the AI chat container
         responseState.div = loadResponseInChat(responseState.index, "");
         const messageDiv = responseState.div.querySelector(".ai-message");
+        const actionsDiv = responseState.div.querySelector(".ai-actions");
+        actionsDiv.hidden = true;
 
-        UpdateLoadingMessageInChat(responseState.div, loadingMessage);
+        UpdateLoadingMessageInChat(responseState.div, "Loading...");
 
-        scrollToBottom();
+        scrollToBottom(true, true);
 
         // Get the AI's response from the backend
-        try {
-            const result = await GetResponseAsGuest(request);
+        try {   
+            if (!responseState.error) {       
+                const result = await GetResponseAsGuest(request);
 
-            if (!result.ok) {
-                throw new Error(`HTTP error ${result.status}`);
-            }
+                if (!result.ok) {
+                    let detail = `HTTP error ${result.status}`;
+                    try {
+                        const body = await result.json();
+                        if (Array.isArray(body.detail) && body.detail[0]?.msg) {
+                            detail = body.detail[0].msg;
+                        }
+                    } catch {
+                        // Ignore JSON parsing errors and use the default detail message
+                    }
+                    throw new Error(detail);
+                }
 
-            const reader = result.body.getReader();
-            const decoder = new TextDecoder("utf-8");
+                const reader = result.body.getReader();
+                const decoder = new TextDecoder("utf-8");
 
-            while (true) {
-                const { done, value } = await reader.read();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    // When the last chunk is received, break the loop
+                    if (done) {
+                        break;
+                    }
+
+                    // Recieve JSON structured chunks
+                    pending += decoder.decode(value, { stream: true });
+                    const lines = pending.split("\n");
+                    pending = lines.pop();          // the last piece may be cut off; keep it for the next read
+                    ProcessAIResults(lines, responseState);
+
+                    // Errors
+                    if (responseState.error) {
+                        break;
+                    }
+
+                    // Scroll to the bottom with instant scrolling as each chunk loads in
+                    scrollToBottom(false, false);
+                }
                 
-                // When the last chunk is received, break the loop
-                if (done) {
-                    break;
+                // Flush the decoder to remove any remaining bytes
+                if (!responseState.error) {
+                    pending += decoder.decode();
+
+                    // Processes those remaining bytes
+                    const lines = pending.split("\n");
+                    ProcessAIResults(lines, responseState);
                 }
+                else {
+                    console.error(responseState.error);
+                    chatHistory.remove(responseState.index);
+                    chatHistory.remove(responseState.index-1);
 
-                // Recieve JSON structured chunks
-                pending += decoder.decode(value, { stream: true });
-                const lines = pending.split("\n");
-                pending = lines.pop();          // the last piece may be cut off; keep it for the next read
-                ProcessAIResults(lines, responseState);
-
-                // Errors
-                if (responseState.error) {
-                    break;
+                    // Do not save the message, and delete the ID to be used by the next message
+                    messageDiv.removeAttribute("id");
                 }
-
-                // Scroll to the bottom with instant scrolling as each chunk loads in
-                scrollToBottom(false, false);
             }
-            
-            // Flush the decoder to remove any remaining bytes
-            if (!responseState.error) {
-                pending += decoder.decode();
-
-                // Processes those remaining bytes
-                const lines = pending.split("\n");
-                ProcessAIResults(lines, responseState);
-            }
-            else {
-                console.error(responseState.error);
-                chatHistory.remove(responseState.index);
-                chatHistory.remove(responseState.index-1);
-
-                // Do not save the message, and delete the ID to be used by the next message
-                messageDiv.removeAttribute("id");
-            }
-
         } catch (error) {
-            responseState.error = "\n\n*Error fetching AI response: " + error + "*";
+            responseState.error = "\n\nEncountered an issue fetching the AI's response.\n*" + error + "*";
+            console.log(responseState.thoughts, "-", responseState.answer);
             console.error(error);
         }
 
@@ -403,13 +515,25 @@ async function createAIResponse(promptHTML, text) {
 
         // Update the displayed text with the final response, and save it (not the thoughts, yet)
         UpdateAIResponseInChat(responseState.div, responseState.answer + (responseState.error || ""));
-        if (!responseState.error) {
-            chatHistory.update(responseState.index, "", responseState.answer);
+        let contextNoThinking = contextUsage;
+        contextUsage += responseState.tokens;
+        if (!responseState.error && contextUsage < maxContext) {
+            const answerTokens = 10 * Math.ceil((responseState.answer.length * .1) / (responseState.answer.length + responseState.thoughts.length) * responseState.tokens);
+            contextNoThinking += answerTokens;
+            console.log("Context usage w/ thinking:", contextUsage, "-", Math.round(contextUsage*1000.0/maxContext)/10.0, "%");
+            console.log("Saved context usage:", contextNoThinking, "-", Math.round(contextNoThinking*1000.0/maxContext)/10.0, "%");
+            chatHistory.update(responseState.index, "", responseState.answer, answerTokens);
             chatHistory.save();
+
+            actionsDiv.hidden = false;
         }
         
         // Handle errors
         else {
+            if (contextUsage >= maxContext) {
+                responseState.answer += "\n\n*Error: The context window has been exceeded. Please try again with a shorter message or shorter request.*";
+                UpdateAIResponseInChat(responseState.div, responseState.answer);
+            }
             chatHistory.remove(responseState.index);
             chatHistory.remove(responseState.index-1);
 
@@ -556,7 +680,7 @@ function group(node) {
     const result = toText(node);
     if (node.localName === "mrow" || node.localName === "mstyle" || node.localName === "mpadded" || node.localName === "menclose") {
         if (node.children.length === 1) {
-            return group(result);
+            return group(node.children[0]);
         }
     }
     if (result.length > 1) {
@@ -619,18 +743,17 @@ function CopyText(btn) {
 
     // Remove the code headers
     clonedMessage.querySelectorAll(".code-header")
-        .forEach(element => element.remove()
-    );
+        .forEach(element => element.remove());
 
     // Reformat the math into readable plaintext
     clonedMessage.querySelectorAll(".katex")
         .forEach(element => {
             const math = element.querySelector("math");
             if (!math) return;
-            const text = toText(math);
+            const text = toText(math).replace(/[\u2061-\u2064]/g, " ").trim();
             element.replaceWith(text);
-        }
-    ).replace(/[\u2061-\u2064]/g, " ").trim();
+        });
+
     
     // Temporarily load the new element off screen
     clonedMessage.style.position = "fixed";
@@ -659,8 +782,8 @@ function CopyMarkdown(btn) {
     const chat = btn.closest(".ai-chat");
     const message = chat.querySelector(".ai-message");
 
-    const id = message.id;
-    const markdown = chatHistory.get(id).content;
+    const markdown = chatHistory.get(message.id)?.content;
+    if (!markdown) return;
 
     try {
         if (navigator.clipboard && window.isSecureContext) {

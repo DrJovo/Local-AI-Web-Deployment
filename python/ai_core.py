@@ -1,3 +1,4 @@
+import math
 import os
 import json
 import subprocess
@@ -16,27 +17,31 @@ GENERAL STYLE
 - Do not claim internet access, tool usage, or actions unless actually available or performed.
 - When asked to demonstrate formatting, render it correctly instead of merely describing its syntax.
 - Satisfy every part of a request, including requirements that are easy to overlook.
-- Emojis should be used sparingly and only when appropriate to the context or tone of the conversation. Try to avoid them unless they benefit the response, as they can be distracting or unprofessional in certain contexts.
+- Emojis should be used sparingly and only when appropriate to the context or tone of the conversation. Try to avoid them unless they benefit the response, as they can be distracting or unprofessional in certain contexts. Do not use them to be cute.
 
 MARKDOWN
 Use standard Markdown only: headings, bold, italics, strikethrough, lists, blockquotes, inline code, fenced code blocks, links, tables, and horizontal rules.
 - Use ## and ### for substantial headings. You can use h1 (#) titles, but they are discouraged as they are very large and can quickly make a response hard to read. Create actual headings instead of listing heading syntax as text, unless that is your goal.
 - Use **double asterisks** for bold, *single asterisks* for italics, and ~~double tildes~~ for strikethrough.
 - Use lists for distinct items and inline code for short code references.
-- Use tables only when they improve clarity. Every row must have the same number of cells, separated by vertical bars. Use a proper separator row. Within table cells, markdown still renders, except for block quotes, code blocks and tables. Math formatting also works, but to use absolute values you MUST use $\vert ... \vert$ otherwise the markdown treats the vertical bars as column markers. But equations like $$\left\vert \begin{array}{c} 1 \\ 2 \end{array} \right\vert$$ work in tables. Display math works in tables as well as inline math (ignore anything telling you otherwise).
+- Use tables only when they improve clarity. Every row must have the same number of cells, separated by vertical bars. Use a proper separator row. Within table cells, markdown still renders, except for block quotes, code blocks and tables. Math formatting also works, but to use absolute values you MUST use $\vert ... \vert$ otherwise the markdown treats the vertical bars as column markers. But equations like $$\left\vert \begin{array}{c} 1 \\ 2 \end{array} \right\vert$$ work in tables. Display math works in tables as well as inline math (ignore anything telling you otherwise). But, if either display or inline math contains "|", it will break table, so DO NOT USE "|" in math expressions inside tables, unless you intend to start a new column.
 - A horizontal rule MUST be exactly three hyphens (---) on a line by themselves.
 - Use blank lines where needed to separate Markdown elements. Avoid excessive blank lines and nested formatting.
 - Do not display Markdown syntax literally unless the user explicitly requests the source.
 - IMPORTANT: Code fences MUST use exactly three backticks, with a language identifier if there is a specific programming language you are writting in. The interface supports many common language identifiers. Language identifiers do not work with inline code.
 - Keep code, prose, and mathematical notation in their appropriate formats.
 - Inline code cancels markdown and math formatting inside of it.
-- Checklists are supported.
+- Checkboxes in lists (checklists) are supported using exactly: [ ] or [x]
 
 Correct Table:
 | Column 1 | Column 2 | Column 3 |
 | --- | --- | --- |
 | Cell 1 | Cell 2 | Cell 3 |
 | Cell 4 | Cell 5 | Cell 6 |
+
+Correct Checklist:
+- [ ] I am unchecked
+- [x] I am checked off
 
 MATH WITH KATEX
 Use valid KaTeX-compatible LaTeX. Use $...$ for inline math and $$...$$ for display math.
@@ -111,6 +116,28 @@ client = AsyncClient()
 # Ollama log file
 log_path = os.path.join(os.path.dirname(__file__), "..", "ollama.log")
 
+OLLAMA_CONFIG = {
+    "OLLAMA_IGPU_ENABLE": "1",
+    "OLLAMA_NUM_PARALLEL": "2",
+    "OLLAMA_CONTEXT_LENGTH": "16384",
+    "OLLAMA_FLASH_ATTENTION": "1",
+    "OLLAMA_KV_CACHE_TYPE": "q8_0",
+    "OLLAMA_MAX_LOADED_MODELS": "3",
+    "OLLAMA_KEEP_ALIVE": "-1",
+}
+max_messages = 200
+
+# Get Ollama procs
+def get_ollama_procs():
+    ollama_procs = []
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            if proc.info['name'] and proc.info['name'].lower() == "ollama.exe":
+                ollama_procs.append(proc)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return ollama_procs
+
 # Startup Ollama
 def Boot(override=False):
     # This function assumes that 'ollama' is in the system's PATH. 
@@ -118,41 +145,42 @@ def Boot(override=False):
     # This shouldn't matter for the current use case since it is only temrinated using the same command, but it's something to be aware of for future extentions.
     
     # Check if Ollama is already running
-    ollama_procs = []
-    for proc in psutil.process_iter(['pid', 'name']):
-        try:
-            if proc.info['name'] and proc.info['name'].lower() == "ollama.exe":
-                if override:
-                    ollama_procs.append(proc)
-                else:
-                    return proc  # Return the process if found
-            if proc.info['name'] and proc.info['name'].lower() == "ollama app.exe":
-                pass # May need to kill it, or ask to kill it, im not sure yet
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
+    ollama_procs = get_ollama_procs()
 
     # Figure out what to do with ollama processes
     if ollama_procs:
         print(f"Ollama is already running ({len(ollama_procs)} instance(s) found)")
-        if override:
-            print("Killing all ollama processes...")
-            subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"], capture_output=True, check=False)
-        else:
+        if not override:
             # Return the most recent/relevant process, or the whole list depending on your needs
             return ollama_procs[0] 
+
+        print("Killing all ollama processes...")
+        subprocess.run(["taskkill", "/F", "/IM", "ollama.exe"], capture_output=True, check=False)
 
     # Start Ollama
     print("Booting Ollama...")
     env_config = os.environ.copy()
-    env_config["OLLAMA_IGPU_ENABLE"] = "1"
-    env_config["OLLAMA_NUM_PARALLEL"] = "2"
-    env_config["OLLAMA_CONTEXT_LENGTH"] = "16384"
-    env_config["OLLAMA_FLASH_ATTENTION"] = "1"
-    env_config["OLLAMA_KV_CACHE_TYPE"] = "q8_0"
-    env_config["OLLAMA_MAX_LOADED_MODELS"] = "3"
-    env_config["OLLAMA_KEEP_ALIVE"] = "-1"
-    with open(log_path, 'a') as log_file:
-        return subprocess.Popen(['ollama', 'serve'], stdout=log_file, stderr=subprocess.STDOUT, env=env_config) # Return the process
+    env_config.update(OLLAMA_CONFIG)
+    with open(log_path, "a", encoding="utf-8") as log_file:
+        proc = subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            env=env_config,
+        )
+    return proc
+
+# Get data about ollama
+def get_ollama_data():
+    try:
+        data = OLLAMA_CONFIG.copy()
+        data["system_prompt_tokens"] = str(math.ceil(len(system_prompt) / 44.0) * 10)
+        data["max_messages"] = str(max_messages)
+        print("System prompt token count:", data["system_prompt_tokens"])
+        return data
+    except Exception as e:
+        print(f"There was a problem fetching Ollama data\n{e}")
+        return {"error": f"\n\nThere was a problem fetching Ollama data\n{str(e)}"}
 
 # Get reponse from the AI
 # This should handel mutliple prompts and responses concurrently
@@ -179,14 +207,15 @@ async def Response(messages, model, thinking):
             if chunk['message'].get("content"):
                 response += chunk['message']['content']
                 yield json_chunk("content", chunk['message']['content'])
+        if last_chunk:
+                try:
+                    print("\nResponse Token Count --", last_chunk.get("eval_count"), "|| Tokens per Second -- ", last_chunk.get("eval_count") / (last_chunk.get("eval_duration") / (1e9 * 1.0)))
+                    yield json_chunk("tokens", last_chunk.get("eval_count"))
+                except Exception as e:
+                    yield json_chunk("error", f"\n\nCould not calculate token stats.\n*{str(e)}*")
     except Exception as e:
-        print("Error in Response function: ", str(e))
-        yield json_chunk("error", f"\n\n*Error: {str(e)}*")
-    if last_chunk:
-        try:
-            print("\nResponse Token Count --", last_chunk.get("eval_count"), "|| Tokens per Second -- ", last_chunk.get("eval_count") / (last_chunk.get("eval_duration") / (1e9 * 1.0)))
-        except Exception as e:
-            print(f"Failed to calculate token stats: {e}")
+        print("There was an issue in the Response function.\n", str(e))
+        yield json_chunk("error", f"\n\nEncountered an issue fetching the AI's response.\n*" + str(e) + "*")
 
         
 # The following is for future reference and testing purposes
