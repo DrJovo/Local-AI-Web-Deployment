@@ -73,6 +73,7 @@ var chat_space = document.getElementById("chat-space");
 input_field.addEventListener("input", () => {
     const isEmpty = input_field.innerHTML === "" || input_field.innerHTML === "<br>" || input_field.innerHTML === "<div><br></div>";
     if (isEmpty) {
+        input_field.innerHTML = "";
         chat_space.classList.remove("typing");
         input_field.classList.remove("typing");
     }
@@ -86,13 +87,13 @@ input_field.addEventListener("input", () => {
 });
 
 // -- Make Shift+Enter create a new line in the input field, and Enter send the message -- //
-function checkEnter(event) {
-    if (event.keyCode == "13" && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-        return true;
-    }
-}
+// Also handels other languages and alphabet character creation
+input_field.addEventListener("keydown", (event) => {
+    // While composing (Chinese, Japanese, Korean), Enter confirms a character
+    if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    sendMessage();
+});
 
 
 // -- Scroll to bottom of AI message on prompt send -- //
@@ -179,11 +180,12 @@ function AddThoughtBubble(div) {
                 <div class="preview-inner-text"></div>
             </div>
             <div class="collapsible-thought-bubble">
-                <div class="ai-thoughts" data-state="thinking"></div>
+                <div class="ai-thoughts"></div>
             </div>
             <button class="expand-thoughts" aria-expanded="false">Show thinking</button>
         `
         thoughtBubble.className = "thought-bubble";
+        thoughtBubble.dataset.state = "thinking";
         div.querySelector(".ai-message").before(thoughtBubble);
     }
     return thoughtBubble;
@@ -375,15 +377,31 @@ renderer.code = function(token) {
             </div>`;
 }
 
+// Stop Button
+const sendButton = document.getElementById("send");
+const stopButton = document.getElementById("stop");
+let replyAbort = null;
+
+function showStop(showing) {
+    sendButton.hidden = showing;
+    stopButton.hidden = !showing;
+}
+
+function stopReply() {
+    replyAbort?.abort();
+    input_field.focus();
+}
+
 // Call the AI as a guest
-async function GetResponseAsGuest(request){
+async function GetResponseAsGuest(request, signal) {
     // Get response
     const result = await fetch("/api/guest/respond", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: request
+        body: request,
+        signal: signal
     });
     
     // return the result
@@ -403,7 +421,8 @@ async function createAIResponse(promptHTML, text) {
         bubble: null, 
         div: null,
         index: null,
-        error: null 
+        error: null,
+        stopped: false
     };
     
     try {
@@ -445,8 +464,10 @@ async function createAIResponse(promptHTML, text) {
 
         // Get the AI's response from the backend
         try {   
-            if (!responseState.error) {       
-                const result = await GetResponseAsGuest(request);
+            if (!responseState.error) { 
+                replyAbort = new AbortController();   
+                showStop(true);   
+                const result = await GetResponseAsGuest(request, replyAbort.signal);
 
                 if (!result.ok) {
                     let detail = `HTTP error ${result.status}`;
@@ -505,9 +526,19 @@ async function createAIResponse(promptHTML, text) {
                 }
             }
         } catch (error) {
-            responseState.error = "\n\nEncountered an issue fetching the AI's response.\n*" + error + "*";
-            console.log(responseState.thoughts, "-", responseState.answer);
-            console.error(error);
+            if (error.name === "AbortError") {
+                responseState.stopped = true;
+            } else {
+                responseState.error = "\n\nEncountered an issue fetching the AI's response.\n*" + error + "*";
+                console.error(error);
+            }
+        }
+
+        // Stopped before any words arrived: nothing to keep, so clean up like a failed reply
+        if (responseState.stopped && !responseState.answer) {
+            responseState.error = "*Response stopped.*";
+        } else if (responseState.stopped) {
+            responseState.answer = "\n\n*Reply stopped early.*";
         }
 
         // Remove loading message if it still there
@@ -517,7 +548,7 @@ async function createAIResponse(promptHTML, text) {
         UpdateAIResponseInChat(responseState.div, responseState.answer + (responseState.error || ""));
         let contextNoThinking = contextUsage;
         contextUsage += responseState.tokens;
-        if (!responseState.error && contextUsage < maxContext) {
+        if ((!responseState.error) && contextUsage < maxContext) {
             const answerTokens = 10 * Math.ceil((responseState.answer.length * .1) / (responseState.answer.length + responseState.thoughts.length) * responseState.tokens);
             contextNoThinking += answerTokens;
             console.log("Context usage w/ thinking:", contextUsage, "-", Math.round(contextUsage*1000.0/maxContext)/10.0, "%");
@@ -544,11 +575,13 @@ async function createAIResponse(promptHTML, text) {
         // Update the thought div
         responseState.thinking = false;
         if (responseState.bubble) {
-            responseState.div.querySelector(".ai-thoughts").setAttribute("data-state", "done");
+            responseState.bubble.dataset.state = "done";
         }
 
     } finally {
-        isSending = false;        
+        isSending = false;
+        replyAbort = null;  
+        showStop(false);
         scrollToBottom(false, false);
     }
 }

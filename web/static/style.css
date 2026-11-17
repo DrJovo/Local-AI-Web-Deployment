@@ -506,14 +506,30 @@ body {
   overflow: hidden;
 }
 
+.thought-bubble[data-state="thinking"] .preview-inner-text {
+  animation: thinking-pulse 2.6s ease-in-out infinite; /* Increased duration to accommodate the hold */
+}
+
+@keyframes thinking-pulse {
+  0%, 38%, 100% {
+    opacity: 1;    /* Holds at full opacity */
+  }
+  69% {
+    opacity: 0.55; /* The pulse dip */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thought-bubble[data-state="thinking"] .preview-inner-text {
+    animation: none;
+  }
+}
+
 .ai-thoughts p,
 .ai-thoughts ul,
 .ai-thoughts ol,
-.ai-thoughts a,
 .ai-thoughts blockquote,
-.ai-message table,
-.ai-message th,
-.ai-message td
+.ai-thoughts table
 {
   margin-bottom: 0.5rem;
 }
@@ -593,9 +609,16 @@ div[contenteditable]:focus {
   border-color: var(--secondary_text);
 }
 
+#input-field:empty::before {
+  content: attr(data-placeholder);
+  color: var(--secondary_text);
+}
+
+
 /* Send Button */
 /* Styling by cybrejon on uiverse */
-#send {
+#send,
+#stop {
   max-height: 2.6rem;
   min-height: 2rem;
   min-width: 2rem;
@@ -617,7 +640,13 @@ div[contenteditable]:focus {
   border: 2px solid var(--input_field);
 }
 
-#send:hover {
+#send[hidden],
+#stop[hidden] {
+  display: none;
+}
+
+#send:hover,
+#stop:hover {
   border-color: var(--secondary_text);
   background: linear-gradient(
     to bottom,
@@ -630,12 +659,14 @@ div[contenteditable]:focus {
   cursor: pointer;
 }
 
-#send:active {
+#send:active,
+#stop:active {
   transform: translateY(2px);
   box-shadow: none;
 }
 
-#send-icon {
+#send-icon,
+#stop-icon {
   width: auto;
   height: 1rem;
 }
